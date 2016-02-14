@@ -1,0 +1,30 @@
+{
+  "name": "loggerbot",
+  "version": "0.1.0",
+  "description": "Logs all the messages into a database",
+  "main": "logger.js",
+  "dependencies": {
+    "needle": "^1.0.0",
+    "sqlite3": "^3.1.1",
+    "winston": "^2.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/habrabot/loggerbot.git"
+  },
+  "keywords": [
+    "log",
+    "telegram",
+    "bot"
+  ],
+  "author": "nibogd",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/habrabot/loggerbot/issues"
+  },
+  "homepage": "https://github.com/habrabot/loggerbot#readme"
+}
