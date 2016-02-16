@@ -3,5 +3,9 @@
   "owner":24698732,
   "domain":"example.org",
   "port":443,
-  "database":"database.sqlite"
+  "database":"database.sqlite",
+  "cert": {
+  	"private": "cert/private.key",
+  	"public": "cert/public.pem"
   }
+ }

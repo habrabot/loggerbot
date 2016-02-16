@@ -6,6 +6,7 @@ var fs = require('fs');
 var needle = require('needle');
 var sqlite3 = require('sqlite3');
 var winston = require('winston');
+var TelegramApi = require('node-telegram-bot-api');
 // winston.add(winston.transports.File, {
 //     filename: 'logs.log',
 //     handleExceptions: true,
@@ -13,7 +14,44 @@ var winston = require('winston');
 //   });
 // TODO Documentation
 // TODO Permission denied u rekt
-var config = JSON.parse(fs.readFileSync('config.json'));
+
+
+function mergeObjects(a, b) {
+  var result = {};
+  for (var key in a) {
+    result[key] = a[key];
+  }
+  for (var key in b) {
+    result[key] = b[key];
+  }
+  return result;
+}
+
+var config = (function parseConfigs(){
+  var main = JSON.parse(fs.readFileSync('config.json'));
+  var files = fs.readdirSync("./");
+  for (var i = 0; i < files.length; i++) {
+    var filename = files[i];
+    if (fs.statSync("./" + filename).isFile() && /config-(.+?)\.json/i.test(filename)) {
+      try {
+        var config = JSON.parse(fs.readFileSync(filename));
+        main = mergeObjects(main, config);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+  }
+  return main;
+}());
+
+console.log("config", config);
+
+var options = {
+  key: fs.readFileSync(config.cert["private"]),
+  cert: fs.readFileSync(config.cert["public"]),
+};
+
+var telegramApi = new TelegramApi(config.token, {polling: false});
 var db = new sqlite3.Database(config.database);
 
 /**
@@ -25,7 +63,8 @@ var db = new sqlite3.Database(config.database);
  */
 function Telegram(token, url, port) {
   this.token = token;
-  
+
+/*  
   winston.info('Setting up a webhook at ' + url + ':' + port + '/' + token);
   
   needle.post('https://api.telegram.org/bot' + token + '/setWebhook', {'url': url + ':' + port + '/' + token}, 
@@ -36,10 +75,16 @@ function Telegram(token, url, port) {
        winston.error(body.description);
      }
     });
+*/
+  var publicCert = fs.createReadStream(config.cert["public"]);
+  console.log("set webhook to domain " + config.domain);
+  telegramApi.setWebHook(config.domain, publicCert);
+
   db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY NOT NULL UNIQUE, username TEXT, first_name TEXT NOT NULL, last_name TEXT)");
     db.run("CREATE TABLE IF NOT EXISTS chats(id INTEGER PRIMARY KEY NOT NULL UNIQUE, type TEXT NOT NULL, title TEXT, username TEXT, first_name TEXT, last_name TEXT)");
     db.run("CREATE TABLE IF NOT EXISTS messages(id INTEGER NOT NULL, 'from' INTEGER, chat INTEGER NOT NULL, date INTEGER NOT NULL, forward_from INTEGER, forward_date INTEGER, reply_to_message INTEGER, text TEXT, new_chat_participant INTEGER, left_chat_participant INTEGER, migrate_to_chat_id INTEGER)");
+    db.run("create table if not exists raw_packets (data text);");
   });
   
 }
@@ -91,10 +136,22 @@ Message.prototype.log = function() {
   }
 }
 
+
+function saveRaw(data) {
+  db.run("insert into raw_packets (data) values (?);", [data], function(error) {
+    if (error) {
+      //todo: uncomment for debug
+      // console.log(error);
+    }
+  });
+}
+
+
 // Begin
 var telegram = new Telegram(config.token, config.domain, config.port);
 
-http.createServer(function(request, response) {
+console.log("starting server on port " + config.port);
+https.createServer(options, function(request, response) {
   var headers = request.headers;
   var method = request.method;
   var url = request.url;
@@ -112,11 +169,16 @@ http.createServer(function(request, response) {
     response.statusCode = 200;
     response.setHeader('Content-Type', 'application/json');
     
-    if (method = 'POST' && url == '/' + config.token) {
+    if (method = 'POST' /* && url == '/' + config.token */) {
+      //todo: implement it later
+      /*
       var message = new Message(body);
       winston.info('Incoming message...');
       message.log();
       message.store();
+      */
+      console.log(body);
+      saveRaw(body);
     }
     var responseBody = {
       headers: headers,
@@ -127,5 +189,5 @@ http.createServer(function(request, response) {
     //winston.info(JSON.stringify(responseBody));
     response.end();
   });
-}).listen(8443);
+}).listen(config.port);
  
