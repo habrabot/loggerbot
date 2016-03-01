@@ -7,5 +7,9 @@
   "cert": {
   	"private": "cert/private.key",
   	"public": "cert/public.pem"
-  }
+  },
+  "documentation_url": "https://core.telegram.org/bots/api",
+  "documentation_filename": "documentation.html",
+  "packets_database_schema": "tables.json",
+  "packets_database_name": "parsed.db"
  }

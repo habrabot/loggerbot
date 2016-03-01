@@ -1,20 +1,9 @@
-'use strict';
-
 var http = require('http');
 var https = require('https');
 var fs = require('fs');
-var needle = require('needle');
 var sqlite3 = require('sqlite3');
-var winston = require('winston');
 var TelegramApi = require('node-telegram-bot-api');
-// winston.add(winston.transports.File, {
-//     filename: 'logs.log',
-//     handleExceptions: true,
-//     humanReadableUnhandledException: true
-//   });
-// TODO Documentation
-// TODO Permission denied u rekt
-
+var TelegramPacketProcessor = require('./telegram_packet_processor.js');
 
 function mergeObjects(a, b) {
   var result = {};
@@ -51,104 +40,73 @@ var options = {
   cert: fs.readFileSync(config.cert["public"]),
 };
 
-var telegramApi = new TelegramApi(config.token, {polling: false});
+var bot = new TelegramApi(config.token, {polling: false});
 var db = new sqlite3.Database(config.database);
+var packetsProcessor = new TelegramPacketProcessor(config);
+// packetsProcessor.downloadAndPrepare();
+packetsProcessor.processDocumentationFromFile();
+// packetsProcessor.loadTablesData();
 
-/**
- * Represents a Telegram API instance
- * @constructor
- * @param {string} token - bot's token
- * @param {string} url - webhook server url
- * @param {port} port - webhook port
- */
-function Telegram(token, url, port) {
-  this.token = token;
+db.run("create table if not exists raw_packets (data text);");
 
-/*  
-  winston.info('Setting up a webhook at ' + url + ':' + port + '/' + token);
-  
-  needle.post('https://api.telegram.org/bot' + token + '/setWebhook', {'url': url + ':' + port + '/' + token}, 
-    function(err, resp, body) {
-     if (body.ok) {
-      winston.info(body.description);
-     } else {
-       winston.error(body.description);
-     }
-    });
-*/
-  var publicCert = fs.createReadStream(config.cert["public"]);
-  console.log("set webhook to domain " + config.domain);
-  telegramApi.setWebHook(config.domain, publicCert);
-
-  db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY NOT NULL UNIQUE, username TEXT, first_name TEXT NOT NULL, last_name TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS chats(id INTEGER PRIMARY KEY NOT NULL UNIQUE, type TEXT NOT NULL, title TEXT, username TEXT, first_name TEXT, last_name TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS messages(id INTEGER NOT NULL, 'from' INTEGER, chat INTEGER NOT NULL, date INTEGER NOT NULL, forward_from INTEGER, forward_date INTEGER, reply_to_message INTEGER, text TEXT, new_chat_participant INTEGER, left_chat_participant INTEGER, migrate_to_chat_id INTEGER)");
-    db.run("create table if not exists raw_packets (data text);");
-  });
-  
-}
-
-/**
- * Represents a message from telegram servers
- * @constructor
- * @param {string} body - request from webhook
- */
-function Message(body) {
-  body = JSON.parse(body);
-  this.body = body.message;
-}
-
-/**
- * Stores a message into a database
- */
-Message.prototype.store = function() {
-  var data = this.body;
-  db.serialize(function() {
-    if (data.from) {
-      db.run("INSERT OR REPLACE INTO users(id, username, first_name, last_name) VALUES(?, ?, ?, ?)", data.from.id, data.from.username, data.from.first_name, data.from.last_name);
-    }
-    if (data.chat) {
-      db.run('INSERT OR REPLACE INTO chats(id, type, title, username, first_name, last_name) VALUES(?, ?, ?, ?, ?, ?)', data.chat.id, data.chat.type, data.chat.title, data.chat.username, data.chat.first_name, data.chat.last_name)
-    }
-    db.run('INSERT INTO messages(id, "from", chat, date, forward_from, forward_date, reply_to_message, text, new_chat_participant, left_chat_participant, migrate_to_chat_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      data.message_id,
-      data.from ? data.from.id : '',
-      data.chat ? data.chat.id : '',
-      data.date,
-      data.forward_from ? data.forward_from.id : '',
-      data.forward_date,
-      data.reply_to_message ? data.reply_to_message.id : '',
-      data.text,
-      data.new_chat_participant,
-      data.left_chat_participant,
-      data.migrate_to_chat_id
-    )
-  });
-}
-
-/**
- * Logs the message
- */
-Message.prototype.log = function() {
-  if (this.from) {
-    winston.info(this.from.username);
-  }
-}
-
+var publicCert = fs.createReadStream(config.cert["public"]);
+console.log("set webhook to domain " + config.domain);
+bot.setWebHook(config.domain, publicCert);
 
 function saveRaw(data) {
   db.run("insert into raw_packets (data) values (?);", [data], function(error) {
     if (error) {
-      //todo: uncomment for debug
-      // console.log(error);
+      console.log(error);
     }
   });
 }
 
-
-// Begin
-var telegram = new Telegram(config.token, config.domain, config.port);
+function processQuery(message) {
+  if (message['from']['id'] == '111106900' || message['chat']['id'] == '-119508392') {
+    if (message['text']) {
+      var chatId = message['chat']['id'];
+      var text = message['text'];
+      if (/^select.+/i.test(text)) {
+        var restrictedWords = ["insert", "update", "replace", "drop", "delete"];
+        for (var i = 0; i < restrictedWords.length; i++) {
+          if (text.indexOf(restrictedWords[i]) != -1) {
+            bot.sendMessage(chatId, "давай вот не будем");
+            return false;
+          }
+        }
+        var db = packetsProcessor.getDbInstance();
+        text += ";";
+        db.all(text, [], function(error, data) {
+          if (error) {
+            bot.sendMessage(chatId, "error " + error);
+            console.error(error);
+          } else {
+            // console.log(data);
+            var result = [];
+            var cnt = Math.min(data.length, 11);
+            for (var i = 0; i < cnt; i++) {
+              if (i == 0) {
+                result.push(Object.keys(data[i]).join("\t"));
+              }
+              var line = [];
+              for (var key in data[i]) {
+                console.log(key, data[i][key]);
+                line.push(data[i][key]);
+              }
+              result.push(line.join("\t"));
+            }
+            console.log(result);
+            if (result.length > 0) {
+              bot.sendMessage(chatId, result.join("\n"));
+            } else {
+              bot.sendMessage(chatId, "пусто");
+            }
+          }
+        })
+      }
+    }
+  }
+}
 
 console.log("starting server on port " + config.port);
 https.createServer(options, function(request, response) {
@@ -157,28 +115,31 @@ https.createServer(options, function(request, response) {
   var url = request.url;
   var body = [];
   request.on('error', function(err) {
-    winston.error(err);
+    console.error(err);
   }).on('data', function(chunk) {
     body.push(chunk);
   }).on('end', function() {
     body = Buffer.concat(body).toString();
     response.on('error', function(err) {
-      winston.error(err);
+      console.error(err);
     });
 
     response.statusCode = 200;
-    response.setHeader('Content-Type', 'application/json');
+    response.setHeader('Content-Type', 'application/json');    
     
     if (method = 'POST' /* && url == '/' + config.token */) {
-      //todo: implement it later
-      /*
-      var message = new Message(body);
-      winston.info('Incoming message...');
-      message.log();
-      message.store();
-      */
-      console.log(body);
-      saveRaw(body);
+      console.log(body);      
+      saveRaw(body);      
+      try {
+        var packet = JSON.parse(body);
+        packetsProcessor.savePacket(packet);
+        if ('message' in packet && 'from' in packet.message && 'text' in packet.message) {
+          console.log(packet['message']['from']['first_name'], packet['message']['text']);
+          processQuery(packet['message']);
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
     var responseBody = {
       headers: headers,
@@ -186,7 +147,6 @@ https.createServer(options, function(request, response) {
       url: url,
       body: body
     };
-    //winston.info(JSON.stringify(responseBody));
     response.end();
   });
 }).listen(config.port);
