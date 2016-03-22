@@ -1,5 +1,5 @@
 How to launch bot:
-```
+```bash
 # ensure you have nodejs and git installed
 git clone https://github.com/habrabot/loggerbot.git ./loggerbot
 cd loggerbot
