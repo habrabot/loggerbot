@@ -1,6 +1,6 @@
 <h1> How to launch bot: </h1>
   Ensure you have nodejs and git installed. Copy this bash script and launch it in your console: <br>
-```
+```bash
 git clone https://github.com/habrabot/loggerbot.git ./loggerbot
 cd loggerbot
 mkdir cert #Create 'cert' dir
