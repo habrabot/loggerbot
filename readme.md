@@ -1,5 +1,6 @@
-How to launch bot:
- # ensure you have nodejs and git installed
+<h1> How to launch bot: </h1>
+  Ensure you have nodejs and git installed. Copy this bash script and launch it in your console: <br>
+```
 git clone https://github.com/habrabot/loggerbot.git ./loggerbot
 cd loggerbot
 mkdir cert #Create 'cert' dir
@@ -11,5 +12,7 @@ touch config-myword.json #create config-YOURWORD.json file
 echo '{"domain": "99.99.99.99", "port":228, "token": "XXXX:YYYYYYYYYYYYY"}' > config-myword.json #and set "domain", "port", "token" json fields
 npm install
 node logger.js
+```
 
-TODO: add longpolling connection method.
+<h1>TODO:</h1>
+- add longpolling connection method.
