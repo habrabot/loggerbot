@@ -6,7 +6,9 @@
   "dependencies": {
     "needle": "^1.0.0",
     "sqlite3": "^3.1.1",
-    "winston": "^2.1.1"
+    "winston": "^2.1.1",
+    "node-telegram-bot-api": "*",
+    "node-jsdom": "*"
   },
   "devDependencies": {},
   "scripts": {

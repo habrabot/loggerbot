@@ -1,11 +1,15 @@
-Как запустить бота
-* создаем папку cert и в ней создаем сертификаты командой
+How to launch bot:
+ # ensure you have nodejs and git installed
+git clone https://github.com/habrabot/loggerbot.git ./loggerbot
+cd loggerbot
+mkdir cert #Create 'cert' dir
+cd ./cert #and generate ssl keys for https connection:
 openssl req -newkey rsa:2048 -sha256 -nodes -keyout private.key -x509 -days 365 -out public.pem -subj "/C=US/ST=New York/L=Brooklyn/O=Example Brooklyn Company/CN=YOURDOMAIN.EXAMPLE"
-меняйте в команде только YOURDOMAIN.EXAMPLE, остальное пусть остается, тогда оно будет совпадать с конфигом
-* создаем конфиг по шаблониу config-ВАШЕ_СЛОВО.json и прописываем в нем domain, port, token 
-* npm install само собой, тут же я мог протупить и придется доставить модуль node-telegram-bot-api
-* ну и вроде всё, node logger.js и должен заработать, само собой должны быть права хотя бы на запись в папке для создания базы
+ # (Don't forget to change YOURDOMAIN.EXAMPLE to your site name or ip address)
+cd .. # changing dir back to ./loggerbot
+touch config-myword.json #create config-YOURWORD.json file
+echo '{"domain": "99.99.99.99", "port":228, "token": "XXXX:YYYYYYYYYYYYY"}' > config-myword.json #and set "domain", "port", "token" json fields
+npm install
+node logger.js
 
-
-
-Да, сейчас это полноценный говнокод, не говоря уже о сохранении не форматированных json строк в базе, а не в файле-логе хотя бы. Желающие могут улучшить (== переписать) код.
+TODO: add longpolling connection method.
