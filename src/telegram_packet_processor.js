@@ -4,8 +4,8 @@ var jsdom = require('node-jsdom').jsdom;
 var sqlite3 = require('sqlite3');
 
 
-var TelegramPacketProcessor = function(config, db) {	
-	if (typeof db == "undefined") {		
+var TelegramPacketProcessor = function(config, db) {
+	if (typeof db == "undefined") {
 		var dbName = config['packets_database_name'] ? config['packets_database_name'] : 'telegram_bot_packets.db';
 		db = new sqlite3.Database(dbName);
 	} else if (typeof db == "string") {
@@ -51,7 +51,7 @@ var TelegramPacketProcessor = function(config, db) {
 		var document = jsdom(html);
 
 		function prepareName(name) {
-			return name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();	
+			return name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
 		}
 
 		function parseTable(tbl, data) {
@@ -105,7 +105,7 @@ var TelegramPacketProcessor = function(config, db) {
 			case 'boolean':
 			case 'true': return 'boolean';
 			case 'string': return 'text';
-			default: 
+			default:
 				if (type.indexOf("array") != -1) {
 					return "boolean";
 				}
@@ -132,11 +132,11 @@ var TelegramPacketProcessor = function(config, db) {
 				var sqlColumn = "`" + columnName + "` " + type;
 				if (currentTable['unique_id'] == columnName) {
 					sqlColumn += " primary key";
-				} 
+				}
 				queryColumns.push(sqlColumn);
 			}
 		}
-		var query = currentTable.query = "create table if not exists `" + tableName + "` (" + queryColumns.join(", ") + ");";	
+		var query = currentTable.query = "create table if not exists `" + tableName + "` (" + queryColumns.join(", ") + ");";
 		return query;
 	}
 
@@ -144,7 +144,7 @@ var TelegramPacketProcessor = function(config, db) {
 		var sqlData = parseHtml(html);
 		for (var table in sqlData) {
 			prepareCreateTableQuery(table, sqlData[table], sqlData);
-		}		
+		}
 		return sqlData;
 	}
 
@@ -160,7 +160,7 @@ var TelegramPacketProcessor = function(config, db) {
 					callback(html);
 				}
 			});
-		})	
+		})
 	}
 
 
@@ -187,10 +187,10 @@ var TelegramPacketProcessor = function(config, db) {
 		for (var tableName in tables) {
 			var query = tables[tableName].query;
 			console.log(query);
-			db.run(query, function(error) {				
+			db.run(query, function(error) {
 				if (error) {
 					console.error(error);
-				} 
+				}
 			});
 		}
 	}
@@ -242,7 +242,7 @@ var TelegramPacketProcessor = function(config, db) {
 					}
 				}
 			}
-			
+
 			var insertCallback = function(error) {
 				if (error) {
 					console.error(error);

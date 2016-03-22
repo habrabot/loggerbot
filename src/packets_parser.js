@@ -1,10 +1,10 @@
 var sqlite3 = require('sqlite3');
 var TelegramPacketProcessor = require('./telegram_packet_processor.js');
 
-var packetsProcessor = new TelegramPacketProcessor({}, 'parsed.db');
+var packetsProcessor = new TelegramPacketProcessor({}, '../db/parsed.db');
 
 // packetsProcessor.downloadAndPrepare();
-packetsProcessor.processDocumentationFromFile();
+// packetsProcessor.processDocumentationFromFile();
 // packetsProcessor.loadTablesData();
 // console.log(packetsProcessor.tablesData);
 
@@ -22,7 +22,7 @@ var insertCallback = function(error) {
 	console.log(++counter);
 }
 
-var db = new sqlite3.Database('database.sqlite');
+var db = new sqlite3.Database('../db/database.sqlite');
 db.all("select * from raw_packets;", [], function(error, data) {
 	if (error) {
 		console.log(error);
@@ -33,4 +33,3 @@ db.all("select * from raw_packets;", [], function(error, data) {
 		}
 	}
 })
-

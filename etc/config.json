@@ -2,14 +2,15 @@
   "token":"",
   "owner":24698732,
   "domain":"example.org",
-  "port":443,
-  "database":"database.sqlite",
+  "port":80,
+  "database":"db/database.sqlite",
   "cert": {
   	"private": "cert/private.key",
   	"public": "cert/public.pem"
   },
   "documentation_url": "https://core.telegram.org/bots/api",
   "documentation_filename": "documentation.html",
-  "packets_database_schema": "tables.json",
-  "packets_database_name": "parsed.db"
+  "packets_database_schema": "db/tables.json",
+  "packets_database_name": "db/parsed.db",
+  "polling": 0
  }
