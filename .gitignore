@@ -1,4 +1,5 @@
 cert/*
-config-*
+etc/config-*
 node_modules/*
 database.sqlite
+db/*
