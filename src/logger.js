@@ -1,14 +1,33 @@
-var http = require('http');
-var https = require('https');
-var fs = require('fs');
-var sqlite3 = require('sqlite3');
-var TelegramApi = require('node-telegram-bot-api');
-var TelegramPacketProcessor = require('./telegram_packet_processor.js');
+var http = require('http'),
+    https = require('https'),
+    fs = require('fs'),
+    winston = require('winston'),
+    sqlite3 = require('sqlite3'),
+    TelegramApi = require('node-telegram-bot-api'),
+    TelegramPacketProcessor = require('./telegram_packet_processor.js');
+// TODO usejsdoc.org
 
-function debug(msg)
-{
-    console.log(msg + "\n");
-}
+/**
+ * We can even send logs to a cloud service (e. g. loggly or smth)
+ * See https://github.com/winstonjs/winston/blob/master/docs/transports.md
+ * By default it doesn't print debug-level log
+ * More on loglevels: https://github.com/winstonjs/winston#logging-levels
+ */
+var logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.File)({
+      name: 'info-file',
+      filename: 'logger.log',
+      level: 'info'
+    }),
+    new (winston.transports.Console)({
+      name: 'info-console',
+      level: 'info',
+      colorize: true,
+      timestamp: true
+    })
+  ]
+});
 
 function mergeObjects(a, b) {
   var result = {};
@@ -31,14 +50,14 @@ var config = (function parseConfigs(){
         var config = JSON.parse(fs.readFileSync("./etc/" + filename));
         main = mergeObjects(main, config);
       } catch (e) {
-        console.log(e);
+        logger.error(e);
       }
     }
   }
   return main;
 }());
 
-console.log("config", config);
+logger.info("config", config);
 
 if (!config.polling)
 {
@@ -48,9 +67,9 @@ if (!config.polling)
     };
 }
 
-var bot = new TelegramApi(config.token, {polling: config.polling}); debug("BOTOK");
-var db = new sqlite3.Database(config.database); debug("DBOK");
-var packetsProcessor = new TelegramPacketProcessor(config); debug("PPCOK");
+var bot = new TelegramApi(config.token, {polling: config.polling}); logger.log("debug", "BOTOK");
+var db = new sqlite3.Database(config.database); logger.log("debug", "DBOK");
+var packetsProcessor = new TelegramPacketProcessor(config); logger.log("debug", "PPCOK");
 // packetsProcessor.downloadAndPrepare();
 // packetsProcessor.processDocumentationFromFile();
 // packetsProcessor.loadTablesData();
@@ -61,14 +80,14 @@ var publicCert = null;
 if (!config.polling)
 {
     publicCert = fs.createReadStream(config.cert["public"]);
-    console.log("set webhook to domain " + config.domain);
+    logger.info("set webhook to domain " + config.domain);
     bot.setWebHook(config.domain, publicCert);
 }
 
 function saveRaw(data) {
   db.run("insert into raw_packets (data) values (?);", [data], function(error) {
     if (error) {
-      console.log(error);
+      logger.error(error);
     }
   });
 }
@@ -91,9 +110,9 @@ function processQuery(message) {
         db.all(text, [], function(error, data) {
           if (error) {
             bot.sendMessage(chatId, "error " + error);
-            console.error(error);
+            logger.error(error);
           } else {
-            // console.log(data);
+            // logger.info(data);
             var result = [];
             var cnt = Math.min(data.length, 11);
             for (var i = 0; i < cnt; i++) {
@@ -102,12 +121,12 @@ function processQuery(message) {
               }
               var line = [];
               for (var key in data[i]) {
-                console.log(key, data[i][key]);
+                logger.info(key, data[i][key]);
                 line.push(data[i][key]);
               }
               result.push(line.join("\t"));
             }
-            console.log(result);
+            logger.info(result);
             if (result.length > 0) {
               bot.sendMessage(chatId, result.join("\n"));
             } else {
@@ -122,37 +141,37 @@ function processQuery(message) {
 
 if (!config.polling)
 {
-    console.log("starting server on port " + config.port);
+    logger.info("starting server on port " + config.port);
     https.createServer(options, function(request, response) {
       var headers = request.headers;
       var method = request.method;
       var url = request.url;
       var body = [];
       request.on('error', function(err) {
-        console.error(err);
+        logger.error(err);
       }).on('data', function(chunk) {
         body.push(chunk);
       }).on('end', function() {
         body = Buffer.concat(body).toString();
         response.on('error', function(err) {
-          console.error(err);
+          logger.error(err);
         });
 
         response.statusCode = 200;
         response.setHeader('Content-Type', 'application/json');
 
         if (method = 'POST' /* && url == '/' + config.token */) {
-          console.log(body);
+          logger.info(body);
           saveRaw(body);
           try {
             var packet = JSON.parse(body);
             packetsProcessor.savePacket(packet);
             if ('message' in packet && 'from' in packet.message && 'text' in packet.message) {
-              console.log(packet['message']['from']['first_name'], packet['message']['text']);
+              logger.info(packet['message']['from']['first_name'], packet['message']['text']);
               processQuery(packet['message']);
             }
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         }
         var responseBody = {

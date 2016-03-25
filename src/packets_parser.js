@@ -1,5 +1,22 @@
-var sqlite3 = require('sqlite3');
-var TelegramPacketProcessor = require('./telegram_packet_processor.js');
+var sqlite3 = require('sqlite3'),
+    TelegramPacketProcessor = require('./telegram_packet_processor.js'),
+    winston = require('winston');
+
+var logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.File)({
+      name: 'info-file',
+      filename: 'logger.log',
+      level: 'info'
+    }),
+    new (winston.transports.Console)({
+      name: 'info-console',
+      level: 'info',
+      colorize: true,
+      timestamp: true
+    })
+  ]
+});
 
 var packetsProcessor = new TelegramPacketProcessor({}, '../db/parsed.db');
 
@@ -11,21 +28,21 @@ var packetsProcessor = new TelegramPacketProcessor({}, '../db/parsed.db');
 var counter = 0;
 packetsProcessor.insertCallback = function(error) {
 	if (error) {
-		console.error(error);
+		logger.error(error);
 	} else {
-		console.log(++counter);
+		logger.info(++counter);
 	}
 }
 
 var counter = 0;
 var insertCallback = function(error) {
-	console.log(++counter);
+	logger.info(++counter);
 }
 
 var db = new sqlite3.Database('../db/database.sqlite');
 db.all("select * from raw_packets;", [], function(error, data) {
 	if (error) {
-		console.log(error);
+		logger.error(error);
 	} else {
 		for (var i = 0; i < data.length; i++) {
 			var json = data[i].data;

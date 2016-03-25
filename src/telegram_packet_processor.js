@@ -1,8 +1,24 @@
-var https = require('https');
-var fs = require('fs');
-var jsdom = require('node-jsdom').jsdom;
-var sqlite3 = require('sqlite3');
+var https = require('https'),
+    fs = require('fs'),
+    jsdom = require('node-jsdom').jsdom,
+    sqlite3 = require('sqlite3'),
+    winston = require('winston');
 
+var logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.File)({
+      name: 'info-file',
+      filename: 'logger.log',
+      level: 'info'
+    }),
+    new (winston.transports.Console)({
+      name: 'info-console',
+      level: 'info',
+      colorize: true,
+      timestamp: true
+    })
+  ]
+});
 
 var TelegramPacketProcessor = function(config, db) {
 	if (typeof db == "undefined") {
@@ -154,7 +170,7 @@ var TelegramPacketProcessor = function(config, db) {
 			response.on('data', function(chunk) {
 				html += chunk;
 			}).on('end', function() {
-				console.log(html);
+				logger.info(html);
 				fs.writeFileSync(DOCUMENTATION_FILENAME, html);
 				if (typeof callback == "function") {
 					callback(html);
@@ -186,10 +202,10 @@ var TelegramPacketProcessor = function(config, db) {
 	function prepareDatabase(tables) {
 		for (var tableName in tables) {
 			var query = tables[tableName].query;
-			console.log(query);
+			logger.info(query);
 			db.run(query, function(error) {
 				if (error) {
-					console.error(error);
+					logger.error(error);
 				}
 			});
 		}
@@ -245,7 +261,7 @@ var TelegramPacketProcessor = function(config, db) {
 
 			var insertCallback = function(error) {
 				if (error) {
-					console.error(error);
+					logger.error(error);
 				}
 				if (typeof callback == "function") {
 					callback(error);
@@ -275,7 +291,7 @@ var TelegramPacketProcessor = function(config, db) {
 	this.savePacket = function(packet, callback) {
 		var tables = tablesData;
 		if (!tables) {
-			console.error('no tables data');
+			logger.error('no tables data');
 			return false;
 		}
 		if (typeof packet == "object") {
@@ -286,7 +302,7 @@ var TelegramPacketProcessor = function(config, db) {
 					saveValue(table, data, field, tables, callback);
 				} else {
 					if (field != 'update_id') {
-						console.error('no table ' + field);
+						logger.error('no table ' + field);
 					}
 				}
 			}
@@ -300,7 +316,7 @@ var TelegramPacketProcessor = function(config, db) {
 				this.savePacket(packet, callback);
 			}
 		} catch (e) {
-			console.error(packet, e);
+			logger.error(packet, e);
 		}
 	}
 
