@@ -285,7 +285,7 @@ var TelegramPacketProcessor = function(config, db) {
 	this.downloadAndPrepare = downloadAndPrepare;
 	this.processDocumentationFromFile = processDocumentationFromFile;
 	this.loadTablesData = function() {
-		this.tablesData = JSON.parse(fs.readFileSync(DATABASE_SCHEMA_FILENAME));
+		tablesData = JSON.parse(fs.readFileSync(DATABASE_SCHEMA_FILENAME));
 	}
 
 	this.savePacket = function(packet, callback) {
