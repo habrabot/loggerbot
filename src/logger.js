@@ -72,7 +72,7 @@ var db = new sqlite3.Database(config.database); logger.log("debug", "DBOK");
 var packetsProcessor = new TelegramPacketProcessor(config); logger.log("debug", "PPCOK");
 // packetsProcessor.downloadAndPrepare();
 // packetsProcessor.processDocumentationFromFile();
-// packetsProcessor.loadTablesData();
+packetsProcessor.loadTablesData();
 
 db.run("create table if not exists raw_packets (data text);");
 
@@ -92,8 +92,17 @@ function saveRaw(data) {
   });
 }
 
+function checkAccess(message) {
+  var chatId = message['chat']['id'],
+      userId = message['from']['id'],
+      access = config['access'];
+  return access === true || (typeof access == "object" && access instanceof Array && (
+    access.indexOf(chatId) != -1 || access.indexOf(userId) != -1
+  ));
+}
+
 function processQuery(message) {
-  if (1) {// (message['from']['id'] == '111106900' || message['chat']['id'] == '-119508392') {
+  if (checkAccess(message)) {
     if (message['text']) {
       var chatId = message['chat']['id'];
       var text = message['text'];

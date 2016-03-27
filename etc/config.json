@@ -3,14 +3,15 @@
   "owner":24698732,
   "domain":"example.org",
   "port":80,
-  "database":"db/database.sqlite",
+  "database":"./db/database.sqlite",
   "cert": {
   	"private": "cert/private.key",
   	"public": "cert/public.pem"
   },
   "documentation_url": "https://core.telegram.org/bots/api",
   "documentation_filename": "documentation.html",
-  "packets_database_schema": "db/tables.json",
-  "packets_database_name": "db/parsed.db",
-  "polling": 0
+  "packets_database_schema": "./db/tables.json",
+  "packets_database_name": "./db/parsed.db",
+  "polling": 0,
+  "access": true
  }
